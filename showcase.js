@@ -1,66 +1,52 @@
-// Row reveal + cursor-trailing preview. The pure helpers are exported so they
-// can be tested in Node; the wiring needs a DOM.
+// Row reveal. Hover, focus, click and Enter/Space all resolve to the same
+// question — which row is active — so that logic is pure and tested.
+//
+// There is deliberately no cursor-following preview panel. The pattern this
+// borrows from shows a screenshot of the hovered project; research papers and
+// analyst roles have no screenshot, and the generated stand-in read as a chart,
+// which is indefensible on a page whose real charts carry the argument.
 
-export const lerp = (a, b, t) => a + (b - a) * t
-
-// Deterministic generative thumbnail per row — no image assets, no randomness.
-export function previewFor(index) {
-  const seed = (index * 2654435761) % 997
-  const bars = Array.from({ length: 26 }, (_, i) => {
-    const v = ((seed + i * 37) % 61) / 60
-    const h = 16 + v * 140
-    const shade = 30 + ((seed + i * 11) % 55)
-    return `<rect x="${i * 11.5 + 4}" y="${(180 - h).toFixed(1)}" width="9" height="${h.toFixed(1)}" fill="rgb(${shade},${shade},${shade})"/>`
-  }).join('')
-  return `<svg viewBox="0 0 300 190" xmlns="http://www.w3.org/2000/svg">` +
-         `<rect width="300" height="190" fill="#f4f1ea"/>${bars}</svg>`
+/**
+ * @param {number} active  currently open row index, or -1 for none
+ * @param {number} i       row being acted on; negative means "close everything"
+ * @param {boolean} toggle true for click/keyboard (re-acting closes it),
+ *                         false for hover/focus (always opens)
+ * @returns {number} the row index that should be open, or -1
+ */
+export function nextActive(active, i, { toggle = false } = {}) {
+  if (i < 0) return -1
+  if (toggle) return active === i ? -1 : i
+  return i
 }
 
-export function initShowcase(container, previewEl) {
+export function initShowcase(container) {
   const rows = [...container.querySelectorAll('.row')]
   if (!rows.length) return
 
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  let active = -1
 
-  let target = { x: 0, y: 0 }, pos = { x: 0, y: 0 }, raf = 0, active = -1
-
-  function open(i) {
+  function apply(i) {
     if (active === i) return
     active = i
     rows.forEach((r, j) => r.classList.toggle('open', j === i))
     container.classList.toggle('dimmed', i >= 0)
-    if (previewEl && fine && !reduced) {
-      if (i >= 0) { previewEl.innerHTML = previewFor(i); previewEl.classList.add('on') }
-      else previewEl.classList.remove('on')
-    }
-  }
-
-  function tick() {
-    pos.x = lerp(pos.x, target.x, 0.12)
-    pos.y = lerp(pos.y, target.y, 0.12)
-    if (previewEl) previewEl.style.translate = `${pos.x}px ${pos.y}px`
-    raf = requestAnimationFrame(tick)
   }
 
   rows.forEach((row, i) => {
     // Focus must produce the same reveal as hover, or keyboard users never see it.
-    row.addEventListener('mouseenter', () => open(i))
-    row.addEventListener('focus', () => open(i))
-    row.addEventListener('click', () => open(active === i ? -1 : i))
+    row.addEventListener('mouseenter', () => apply(nextActive(active, i)))
+    row.addEventListener('focus', () => apply(nextActive(active, i)))
+    row.addEventListener('click', () => apply(nextActive(active, i, { toggle: true })))
     row.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(active === i ? -1 : i) }
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault()
+        apply(nextActive(active, i, { toggle: true }))
+      }
     })
   })
 
-  container.addEventListener('mouseleave', () => open(-1))
+  container.addEventListener('mouseleave', () => apply(nextActive(active, -1)))
   container.addEventListener('focusout', (ev) => {
-    if (!container.contains(ev.relatedTarget)) open(-1)
+    if (!container.contains(ev.relatedTarget)) apply(nextActive(active, -1))
   })
-
-  if (fine && !reduced) {
-    window.addEventListener('pointermove', (ev) => { target.x = ev.clientX; target.y = ev.clientY })
-    raf = requestAnimationFrame(tick)
-  }
-  return () => cancelAnimationFrame(raf)
 }

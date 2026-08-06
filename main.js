@@ -35,8 +35,7 @@ if (figures) {
 
 initInk(document.getElementById('ink'), { reducedMotion })
 
-const preview = document.querySelector('[data-preview]')
-document.querySelectorAll('.rows').forEach((rows) => initShowcase(rows, preview))
+document.querySelectorAll('.rows').forEach((rows) => initShowcase(rows))
 
 if (!reducedMotion && 'IntersectionObserver' in window) {
   const io = new IntersectionObserver((entries) => {
