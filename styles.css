@@ -182,15 +182,26 @@ main { position: relative; z-index: 2; }
 }
 .tags { list-style: none; display: flex; flex-wrap: wrap; gap: .55rem 1.5rem;
         padding: 0; margin: 0; font-size: .95rem; }
-/* One line of content in a full-height band read as an empty section. Given the
-   display face and a shorter band, the space becomes deliberate instead. */
-.band-tight { padding-top: 6vh; padding-bottom: 6vh; }
+.band-tight { padding-top: 7vh; padding-bottom: 7vh; }
+.activity-role {
+  margin: 0 0 2.4rem; color: var(--ink-mid);
+  font-size: .74rem; letter-spacing: .14em; text-transform: uppercase;
+}
+.buggy { margin: 0 0 2.4rem; max-width: 640px; }
+.buggy svg { width: 100%; height: auto; display: block; }
 .activity {
   font-family: 'Playfair', Georgia, serif;
-  font-size: clamp(1.15rem, 2.2vw, 1.75rem);
-  line-height: 1.35; color: var(--ink);
-  max-width: 26ch; margin: 0;
+  font-size: clamp(1.15rem, 2.1vw, 1.6rem);
+  line-height: 1.42; color: var(--ink);
+  max-width: 46ch; margin: 0 0 2.6rem;
 }
+/* Same hairline rhythm as the skills rows and the showcase above. */
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+         gap: 0 2rem; margin: 0; max-width: 900px; }
+.facts > div { padding: .85rem 0; border-top: 1px solid var(--rule); }
+.facts dt { font-size: .66rem; letter-spacing: .16em; text-transform: uppercase;
+            color: var(--ink-mid); margin-bottom: .3rem; }
+.facts dd { margin: 0; font-size: .92rem; }
 
 .contact { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; font-size: 1.05rem; }
 .contact a { color: var(--ink); text-underline-offset: 4px; }

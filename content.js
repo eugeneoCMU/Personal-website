@@ -124,6 +124,19 @@ export const activities = [
   {
     role: 'Treasurer and Buggy Chair',
     org: 'Fringe',
-    detail: 'Carnegie Mellon Sweepstakes racing.',
+    body:
+      'Carnegie Mellon has raced Buggy every spring since 1920. Five pushers ' +
+      'drive a three-wheeled carbon-fibre shell up through Schenley Park, and at ' +
+      'the crest they let go — the driver, lying prone inside a hull moulded ' +
+      'around their own body, takes the descent alone.',
+    // Sources: cmubuggy.org and cmu.edu/news. Kept as data so the figures stay
+    // checkable rather than buried in prose.
+    facts: [
+      ['First raced', '1920'],
+      ['Course', '0.84 miles, Schenley Park'],
+      ['Crew', 'Five pushers, one driver'],
+      ['Descent', 'Up to 35 mph, unpowered'],
+      ['Shell', 'Carbon fibre, under 20 lb'],
+    ],
   },
 ]
