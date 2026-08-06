@@ -36,7 +36,7 @@ export function buildSeriesChart(D) {
   // The band between the observed path and the frictionless counterfactual is
   // what the $764.7B benchmark measures.
   const band =
-    `<path class="band" d="${linePath(empirical, x, y)} ` +
+    `<path class="gap-band" d="${linePath(empirical, x, y)} ` +
     `${danish.map((v, i) => `L${x(danish.length - 1 - i).toFixed(2)},${y(danish[danish.length - 1 - i]).toFixed(2)}`).join(' ')} Z"/>`
 
   const gaps = EMPIRICAL_GAPS.map((i) =>
@@ -57,7 +57,7 @@ export function buildSeriesChart(D) {
   <style>
     .grid { stroke: rgba(18,17,15,.10); }
     .tick, .legend { font: 11px system-ui, sans-serif; fill: #57534c; }
-    .band { fill: rgba(18,17,15,.07); stroke: none; }
+    .gap-band { fill: rgba(18,17,15,.07); stroke: none; }
     .gap-mark { stroke: rgba(18,17,15,.22); stroke-dasharray: 2 4; }
     path.series { fill: none; stroke-width: 1.6; }
     .empirical, path.empirical { stroke: #12110f; }

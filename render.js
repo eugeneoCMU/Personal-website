@@ -27,7 +27,10 @@ export function renderAbout(profile) {
   return `<p class="prose">${e(profile.about)}</p>`
 }
 
-function row({ index, title, meta, body, href, extra = '' }) {
+// `extra` is progressive disclosure — hidden until hover or focus.
+// `after` is always visible, for content that must not be gated behind an
+// interaction (the research figures carry the argument; they never hide).
+function row({ index, title, meta, body, href, extra = '', after = '' }) {
   return `
     <article class="row" tabindex="0" data-index="${index}">
       <span class="row-num">${pad(index)}</span>
@@ -37,6 +40,7 @@ function row({ index, title, meta, body, href, extra = '' }) {
           <p class="row-body">${e(body)}</p>
           ${extra}
         </div>
+        ${after}
       </div>
       <div class="row-meta">${meta}</div>
     </article>`
@@ -49,7 +53,7 @@ export function renderResearch(items) {
     href: r.link,
     body: r.summary,
     meta: `<span>${e(r.dates)}</span><span>${e(r.venue)}</span>`,
-    extra: r.figure ? '<div class="figures" data-figures></div>' : '',
+    after: r.figure ? '<div class="figures" data-figures></div>' : '',
   })).join('')
 }
 

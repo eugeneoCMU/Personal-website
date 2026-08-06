@@ -44,5 +44,9 @@ if (!reducedMotion && 'IntersectionObserver' in window) {
       if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target) }
     })
   }, { rootMargin: '0px 0px -12% 0px' })
-  document.querySelectorAll('.band').forEach((el) => { el.classList.add('reveal'); io.observe(el) })
+  // Scoped to direct children of <main>: an unscoped '.band' also matches SVG
+  // internals inside the charts, which would set the figures to opacity 0.
+  document.querySelectorAll('main > .band').forEach((el) => {
+    el.classList.add('reveal'); io.observe(el)
+  })
 }
