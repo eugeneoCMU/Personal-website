@@ -5,6 +5,10 @@
   --rule: rgba(18,17,15,.14);
   --measure: 62ch;
   --gutter: clamp(20px, 5vw, 80px);
+  /* How far the hero wordmark sits above the bottom of the first screen.
+     Bigger = name higher. This is the one number to change if the hero
+     composition feels off. */
+  --hero-lift: 38vh;
 }
 
 @font-face { font-family: 'Playfair'; src: url('assets/fonts/playfair-display-400.woff2') format('woff2');
@@ -71,11 +75,12 @@ main { position: relative; z-index: 2; }
 }
 .topbar a:hover::after, .topbar a:focus-visible::after { transform: scaleX(1); }
 
-/* Sits low-left, but not on the floor — 12vh put the wordmark uncomfortably
-   close to the bottom edge. */
+/* Upper-third composition. Bottom-aligned with a large bottom pad rather than
+   top-aligned, so the name holds its position relative to the fold on any
+   screen height instead of drifting. */
 .hero { min-height: 100svh; display: flex; flex-direction: column;
         justify-content: flex-end;
-        padding: 0 var(--gutter) clamp(90px, 25vh, 300px); }
+        padding: 0 var(--gutter) clamp(140px, var(--hero-lift), 420px); }
 .wordmark {
   font-family: 'Playfair', Georgia, serif; font-weight: 400;
   font-size: clamp(3.2rem, 13vw, 11rem); line-height: .92; margin: 0 0 .3em;
