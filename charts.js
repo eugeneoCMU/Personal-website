@@ -19,7 +19,10 @@ const SHARED_STYLE = `
   .c-sub   { font: 11px system-ui, sans-serif; fill: #57534c; }
   .c-val   { font: 500 13px system-ui, sans-serif; fill: #12110f; }
   .c-tick  { font: 11px system-ui, sans-serif; fill: #57534c; }
-  .c-bar   { fill: rgba(18,17,15,.14); }
+  /* .52 alpha reads 3.6:1 against the paper, clearing WCAG 1.4.11 for graphical
+     objects. At .14 the null bar — 85.7% of the shortfall, the chart's whole
+     point — was effectively invisible. */
+  .c-bar   { fill: rgba(18,17,15,.52); }
   .c-bar-strong { fill: #12110f; }
   .c-ref   { stroke: #12110f; stroke-width: 1; stroke-dasharray: 4 4; }
   .c-rule  { stroke: rgba(18,17,15,.14); stroke-width: 1; }
@@ -39,6 +42,13 @@ export function buildRecoveryChart(recovery, benchmarkB) {
   const x = scale([0, 110], [300, W - 70])
   const barH = 26
 
+  // All value labels share one x, past the longest bar. Placed individually they
+  // collided with each other and with the gap strip, because the two bars differ
+  // by only 5.6 points.
+  // Past the 100% rule as well as the longest bar, so a label never sits on the
+  // dashed reference line.
+  const labelX = Math.max(x(Math.max(...recovery.map((r) => r.sharePct))), x(100)) + 14
+
   const rows = recovery.map((r, i) => {
     const y = 56 + i * rowH
     const strong = i === recovery.length - 1
@@ -48,7 +58,7 @@ export function buildRecoveryChart(recovery, benchmarkB) {
       <text class="c-sub"  x="280" y="${y + 30}" text-anchor="end">${esc(r.sublabel)}</text>
       <rect class="${strong ? 'c-bar-strong' : 'c-bar'}" x="${x(0).toFixed(1)}" y="${y}"
             width="${(x(r.sharePct) - x(0)).toFixed(1)}" height="${barH}"/>
-      <text class="c-val" x="${(x(r.sharePct) + 10).toFixed(1)}" y="${y + 18}">${r.sharePct.toFixed(1)}%</text>
+      <text class="c-val" x="${labelX.toFixed(1)}" y="${y + 18}">${r.sharePct.toFixed(1)}%</text>
     </g>`
   }).join('')
 
