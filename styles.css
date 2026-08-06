@@ -91,25 +91,21 @@ main { position: relative; z-index: 2; }
   font-family: 'Playfair', Georgia, serif; font-weight: 400;
   font-size: clamp(3.2rem, 13vw, 11rem); line-height: .92; margin: 0 0 .3em;
 }
-/* Letters rise into place from behind a mask. The mask has to be tight along the
-   bottom while they travel, or you see them before they arrive — but a tight
-   bottom edge shears the descenders off 'g' once they land. So the mask releases
-   itself after the last letter settles, in CSS rather than JS: if scripting
-   fails the descenders still survive. */
-.wordmark-inner {
-  display: inline-block;
-  clip-path: inset(-.14em 0 0 0);
-  animation: unmask 1ms linear 1.6s forwards;
-}
-@keyframes unmask { to { clip-path: inset(-.14em -.08em -.5em -.08em); } }
+/* Letters settle into place. Deliberately NO clip mask and only a short travel:
+   the earlier version dropped each letter a full line-height and masked it,
+   which sheared Playfair's descenders, and — until the animation finished —
+   parked the wordmark on top of the tagline. A small offset plus opacity needs
+   no mask, so neither failure is reachable. */
+.wordmark-inner { display: inline-block; }
 .wordmark span {
   display: inline-block;
-  transform: translateY(105%);
-  animation: rise .9s cubic-bezier(.22,.61,.36,1) forwards;
-  animation-delay: calc(var(--i, 0) * 42ms + 120ms);
+  opacity: 0;
+  transform: translateY(.14em);
+  animation: settle .8s cubic-bezier(.22,.61,.36,1) forwards;
+  animation-delay: calc(var(--i, 0) * 38ms + 100ms);
 }
-.wordmark span.sp { width: .26em; animation: none; transform: none; }
-@keyframes rise { to { transform: translateY(0); } }
+.wordmark span.sp { width: .26em; animation: none; opacity: 1; transform: none; }
+@keyframes settle { to { opacity: 1; transform: none; } }
 .tagline { max-width: 34ch; margin: 0; color: var(--ink-mid);
            font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; }
 
@@ -174,7 +170,15 @@ main { position: relative; z-index: 2; }
 .tags { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem 1.4rem;
         padding: 0; margin: 0 0 1rem; font-size: .82rem; }
 .tags.subtle { color: var(--ink-mid); }
-.activity { color: var(--ink-mid); max-width: var(--measure); margin: 0; }
+/* One line of content in a full-height band read as an empty section. Given the
+   display face and a shorter band, the space becomes deliberate instead. */
+.band-tight { padding-top: 6vh; padding-bottom: 6vh; }
+.activity {
+  font-family: 'Playfair', Georgia, serif;
+  font-size: clamp(1.15rem, 2.2vw, 1.75rem);
+  line-height: 1.35; color: var(--ink);
+  max-width: 26ch; margin: 0;
+}
 
 .contact { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; font-size: 1.05rem; }
 .contact a { color: var(--ink); text-underline-offset: 4px; }
@@ -197,9 +201,7 @@ main { position: relative; z-index: 2; }
     animation: none !important;
   }
   .reveal { opacity: 1; transform: none; }
+  /* animation:none above would otherwise strand the letters at opacity 0. */
   .wordmark span { transform: none !important; opacity: 1 !important; }
-  /* animation:none above would strand the mask in its tight travelling state
-     and clip the descenders permanently. */
-  .wordmark-inner { clip-path: none !important; }
   .figure .c-bar, .figure .c-bar-strong, .figure .c-range { transform: none !important; }
 }
