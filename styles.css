@@ -15,7 +15,7 @@
              font-weight: 500; font-display: swap; }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body {
   margin: 0; background: var(--paper); color: var(--ink);
   font-family: 'Grotesque', system-ui, sans-serif; font-size: 16px; line-height: 1.6;
@@ -41,8 +41,24 @@ body {
   100% { transform: translate(0, 0); }
 }
 
-.topbar, main { position: relative; z-index: 2; }
-.topbar { position: absolute; top: 0; right: 0; padding: 26px var(--gutter); }
+main { position: relative; z-index: 2; }
+
+/* Fixed, not absolute. As an absolute element it scrolled away with the page,
+   so after following any nav link there was no nav left to use. */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+  display: flex; justify-content: flex-end;
+  padding: 22px var(--gutter);
+  pointer-events: none;
+}
+.topbar nav { pointer-events: auto; }
+/* Content scrolling underneath dissolves into the paper rather than colliding
+   with the links. */
+.topbar::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(to bottom,
+    var(--paper) 0%, rgba(244,241,234,.92) 55%, rgba(244,241,234,0) 100%);
+}
 .topbar a {
   color: var(--ink); text-decoration: none; margin-left: 26px;
   font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
@@ -55,8 +71,11 @@ body {
 }
 .topbar a:hover::after, .topbar a:focus-visible::after { transform: scaleX(1); }
 
+/* Sits low-left, but not on the floor — 12vh put the wordmark uncomfortably
+   close to the bottom edge. */
 .hero { min-height: 100svh; display: flex; flex-direction: column;
-        justify-content: flex-end; padding: 0 var(--gutter) 12vh; }
+        justify-content: flex-end;
+        padding: 0 var(--gutter) clamp(90px, 25vh, 300px); }
 .wordmark {
   font-family: 'Playfair', Georgia, serif; font-weight: 400;
   font-size: clamp(3.2rem, 13vw, 11rem); line-height: .92; margin: 0 0 .3em;
@@ -75,7 +94,10 @@ body {
 .tagline { max-width: 34ch; margin: 0; color: var(--ink-mid);
            font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; }
 
-.band { padding: 9vh var(--gutter); border-top: 1px solid var(--rule); background: var(--paper); }
+/* scroll-margin so a jumped-to section clears the fixed nav instead of hiding
+   its own heading underneath it. */
+.band { padding: 9vh var(--gutter); border-top: 1px solid var(--rule);
+        background: var(--paper); scroll-margin-top: 76px; }
 .label { font-size: .7rem; letter-spacing: .2em; text-transform: uppercase;
          color: var(--ink-mid); font-weight: 500; margin: 0 0 3.2rem; }
 .prose { max-width: var(--measure); font-size: 1.05rem; margin: 0; }
@@ -150,6 +172,7 @@ body {
   /* animation: none, NOT a near-zero duration. Collapsing the duration of an
      infinite animation (the grain) makes it loop at hundreds of hertz — a
      flashing hazard, and the exact opposite of what the user asked for. */
+  html { scroll-behavior: auto; }
   *, *::before, *::after {
     transition-duration: .01ms !important;
     animation: none !important;

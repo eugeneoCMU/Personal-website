@@ -51,6 +51,25 @@ function showEverything() {
   FIGURES.forEach((el) => el.classList.add('drawn'))
 }
 
+/**
+ * Reveal a section immediately rather than waiting for the scroll observer.
+ * Following a nav link used to land you on a section still at opacity 0, which
+ * looked exactly like a broken link.
+ */
+function revealTarget(hash) {
+  const target = hash && document.querySelector(hash)
+  const band = target && target.closest('.band')
+  if (!band) return
+  band.classList.add('in')
+  band.querySelectorAll('.figure').forEach((f) => f.classList.add('drawn'))
+}
+
+document.querySelectorAll('a[href^="#"]').forEach((a) => {
+  a.addEventListener('click', () => revealTarget(a.getAttribute('href')))
+})
+window.addEventListener('hashchange', () => revealTarget(location.hash))
+if (location.hash) revealTarget(location.hash)
+
 if (reducedMotion || !('IntersectionObserver' in window)) {
   // No observer, or motion suppressed: it is simply already there.
   showEverything()
