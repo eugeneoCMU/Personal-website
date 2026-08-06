@@ -32,6 +32,21 @@ export const research = [
       'genuine surprise is $87.8B.',
     link: 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7152299',
     figure: true,
+    // The site shows `summary` as prose; the resume PDF needs bullets. Both are
+    // generated from this one file, so they cannot drift apart.
+    resumeBullets: [
+      'Authored independent quantitative research on the Federal Reserve’s quantitative ' +
+      'tightening shortfall, measuring agency MBS runoff $764.7B below the phased ' +
+      'redemption caps over June 2022–November 2025',
+      'Built a loan-level survival model on Freddie Mac data recovering 91.3% of that ' +
+      'shortfall, against a no-lock-in null already recovering 85.7%; the lock-in ' +
+      'elasticity’s own contribution is +5.6 points ($42.6B)',
+      'Quantified two intervals around that contribution rather than reporting one: ' +
+      '+2.3 to +9.1 points from floor-read sampling error, +3.5 to +13.1 from the ' +
+      'floor’s functional form',
+      'Built the empirical pipeline in Python (Pandas, NumPy) using loan-level survival ' +
+      'analysis and agent-based modeling of MBS prepayment across coupon vintages',
+    ],
   },
 ]
 
