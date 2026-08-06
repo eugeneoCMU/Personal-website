@@ -11,13 +11,28 @@
 // do. Falls back to the fBm shader in background.js if the GPU cannot do
 // float render targets.
 
-const SIM_RES = 128        // velocity, pressure, divergence, curl
+// ─── Tuning ──────────────────────────────────────────────────────────────────
+// Everything worth adjusting lives here. Each line says which way to move it.
+
+const SIM_RES = 128        // velocity/pressure grid. Higher = finer, costlier.
 const DYE_RES = 1024       // the ink itself, kept sharper than the physics
-const PRESSURE_ITERS = 20
-const VELOCITY_DISSIPATION = 0.2
-const DENSITY_DISSIPATION = 0.32
-const CURL_STRENGTH = 26
-const SPLAT_RADIUS = 0.0022
+const PRESSURE_ITERS = 20  // fewer = softer, mushier flow
+
+// How fast it moves ───────────────────────────────────────────────────────────
+const FLOW_SPEED = 0.42          // master rate. Lower = slower, more languid.
+const POINTER_FORCE = 2400       // momentum per unit of cursor travel
+const VELOCITY_DISSIPATION = 0.6 // higher = motion settles sooner
+const CURL_STRENGTH = 13         // vorticity. Higher = more frantic curling.
+
+// How much ink there is ───────────────────────────────────────────────────────
+const DENSITY_DISSIPATION = 0.44 // higher = ink fades away faster
+const INK_MIX = 0.5              // paper→ink ramp. Lower = paler.
+                                 // Guarded by tests/fluid.test.js: raising this
+                                 // eventually makes the tagline unreadable.
+const SPLAT_AMOUNT_POINTER = 0.085
+const SPLAT_AMOUNT_SEED = 0.15
+const SPLAT_AMOUNT_AMBIENT = 0.075
+const SPLAT_RADIUS = 0.0026      // larger = softer, more diffuse blobs
 
 const BASE_VERT = `#version 300 es
 precision highp float;
@@ -167,8 +182,9 @@ void main () { fragColor = value * texture(uTexture, vUv); }`,
 
   // Dye density -> paper/ink. The vertical ramp keeps the top of the frame
   // clean so the wordmark always has quiet paper behind it.
-  display: `#version 300 es
+  display: (mixValue) => `#version 300 es
 precision highp float;
+#define INK_MIX ${mixValue.toFixed(3)}
 in vec2 vUv;
 out vec4 fragColor;
 uniform sampler2D uTexture;
@@ -182,9 +198,9 @@ void main () {
   d = pow(d, 0.85);
   vec3 paper = vec3(0.957, 0.945, 0.918);
   vec3 ink   = vec3(0.36, 0.35, 0.335);
-  // 0.65, not higher. At 0.9 the densest ink drove the tagline to 1.4:1 — the
-  // hero looked wonderful and could not be read. See INK_MIX in the tests.
-  vec3 col = mix(paper, ink, d * 0.65);
+  // Driven by INK_MIX. At 0.9 the densest ink drove the tagline to 1.4:1 — the
+  // hero looked wonderful and could not be read.
+  vec3 col = mix(paper, ink, d * INK_MIX);
   // A little grain so the gradients never band on a wide flat area.
   col += (hash(gl_FragCoord.xy) - 0.5) * 0.008;
   fragColor = vec4(col, 1.0);
@@ -286,7 +302,10 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
 
   const progs = {}
   for (const [name, src] of Object.entries(FRAG)) {
-    const p = program(gl, BASE_VERT, src)
+    // `display` is a template taking INK_MIX as a compile-time constant, so the
+    // ramp lives with the other tuning values instead of buried in GLSL.
+    const source = typeof src === 'function' ? src(INK_MIX) : src
+    const p = program(gl, BASE_VERT, source)
     if (!p) return { ok: false, reason: `shader ${name} failed` }
     progs[name] = p
   }
@@ -331,7 +350,8 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
     blit(dye.write); dye.swap()
   }
 
-  function step(dt) {
+  function step(rawDt) {
+    const dt = rawDt * FLOW_SPEED
     gl.disable(gl.BLEND)
 
     use(progs.curl)
@@ -407,7 +427,7 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
       const a = (i * 2.399963) + seedTime
       const x = 0.5 + Math.cos(a) * 0.42
       const y = 0.12 + (i % 5) * 0.055
-      splat(x, y, Math.cos(a * 1.7) * 900, 350 + Math.sin(a) * 500, 0.28)
+      splat(x, y, Math.cos(a * 1.7) * 520, 220 + Math.sin(a) * 300, SPLAT_AMOUNT_SEED)
     }
   }
 
@@ -447,10 +467,10 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
 
     if (pointer.moved && pointer.inside) {
       pointer.moved = false
-      const dx = (pointer.x - pointer.px) * 5200
-      const dy = (pointer.y - pointer.py) * 5200
+      const dx = (pointer.x - pointer.px) * POINTER_FORCE
+      const dy = (pointer.y - pointer.py) * POINTER_FORCE
       if (Math.abs(dx) + Math.abs(dy) > 0.6) {
-        splat(pointer.x, pointer.y, dx, dy, 0.16)
+        splat(pointer.x, pointer.y, dx, dy, SPLAT_AMOUNT_POINTER)
       }
     }
 
@@ -460,7 +480,7 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
     if (ambient > 1.9) {
       ambient = 0
       const a = t * 0.7
-      splat(0.5 + Math.cos(a) * 0.44, 0.06, Math.cos(a * 2.1) * 700, 900, 0.2)
+      splat(0.5 + Math.cos(a) * 0.44, 0.06, Math.cos(a * 2.1) * 420, 520, SPLAT_AMOUNT_AMBIENT)
     }
 
     step(dt)
