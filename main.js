@@ -3,6 +3,7 @@ import * as R from './render.js'
 import * as C from './charts.js'
 import * as D from './data/lockin.js'
 import { initInk } from './background.js'
+import { initFluid } from './fluid.js'
 import { initShowcase } from './showcase.js'
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -36,7 +37,20 @@ if (figures) {
       All figures from the published abstract, revised ${D.PAPER.revised}.</figcaption></figure>`
 }
 
-initInk(document.getElementById('ink'), { reducedMotion })
+// Fluid first; the fBm shader is the fallback for GPUs without float render
+// targets, and that in turn falls back to a CSS gradient.
+export const background = (function startBackground() {
+  const canvas = document.getElementById('ink')
+  const fluid = initFluid(canvas, { reducedMotion })
+  if (fluid.ok) return fluid
+  console.info('fluid unavailable (%s) — using the fBm shader', fluid.reason)
+  // A canvas is bound to the first context type it is given, so asking for
+  // 'webgl' on an element that already tried 'webgl2' returns null. Swap in a
+  // clean element so the fallback gets a fresh context.
+  const fresh = canvas.cloneNode(false)
+  canvas.replaceWith(fresh)
+  return { ...initInk(fresh, { reducedMotion }), backend: 'fbm' }
+})()
 
 document.querySelectorAll('.rows').forEach((rows) => initShowcase(rows))
 

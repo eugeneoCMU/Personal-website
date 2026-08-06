@@ -106,7 +106,9 @@ main { position: relative; z-index: 2; }
 }
 .wordmark span.sp { width: .26em; animation: none; opacity: 1; transform: none; }
 @keyframes settle { to { opacity: 1; transform: none; } }
-.tagline { max-width: 34ch; margin: 0; color: var(--ink-mid);
+/* Near-black, not --ink-mid. The tagline sits over the densest part of the ink,
+   where mid-grey measures 1.4:1 — invisible. At full ink this reads 5.8:1. */
+.tagline { max-width: 34ch; margin: 0; color: var(--ink);
            font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; }
 
 /* scroll-margin so a jumped-to section clears the fixed nav instead of hiding
