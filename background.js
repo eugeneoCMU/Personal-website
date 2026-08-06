@@ -33,11 +33,23 @@ void main() {
   uv.x *= u_resolution.x / u_resolution.y;
   float t = u_time * 0.012;
 
-  // The ink leans away from the cursor. Deliberately weak — this should read as
-  // the surface noticing you, not as a thing chasing the mouse.
-  vec2 toPointer = uv - u_pointer;
-  float pull = 0.18 / (1.0 + 6.0 * dot(toPointer, toPointer));
-  vec2 warp = normalize(toPointer + 1e-5) * pull;
+  // Two bugs lived here and both made the ink react in the wrong place.
+  //
+  // 1. uv.x is multiplied by the aspect ratio above, so it spans 0..1.78 on a
+  //    wide screen, while u_pointer.x stays 0..1. Subtracting them put the
+  //    centre of influence far to the left of the actual cursor.
+  // 2. normalize() gives a fixed-length direction that flips through 180° as
+  //    the cursor is crossed, so the field lurched to the other side instead of
+  //    deforming smoothly.
+  //
+  // Now: match the pointer into uv space, and weight the displacement by the
+  // offset itself. d * influence is zero at the cursor, swells around it, and
+  // decays to nothing — continuous everywhere, no flip.
+  vec2 p = u_pointer;
+  p.x *= u_resolution.x / u_resolution.y;
+  vec2 d = uv - p;
+  float influence = exp(-dot(d, d) * 5.0);
+  vec2 warp = d * influence * 0.55;
 
   vec2 q = vec2(fbm(uv * 1.6 + t + warp), fbm(uv * 1.6 + vec2(3.7, 1.3) - t + warp));
   vec2 r = vec2(fbm(uv * 2.1 + 3.0 * q + vec2(1.7, 9.2) + 0.15 * t),
