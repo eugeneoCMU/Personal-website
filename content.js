@@ -18,16 +18,18 @@ export const profile = {
 export const research = [
   {
     title: 'Mortgage Lock-In and the Federal Reserve’s Quantitative Tightening Shortfall',
-    venue: 'SSRN working paper',
+    venue: 'SSRN working paper · 141 pages · revised 5 Aug 2026',
     dates: 'Jan 2026 — present',
     summary:
-      'Household balance sheets absorbed $764.7B less liquidity during quantitative ' +
-      'tightening than the frictionless counterfactual implies. I built three independent ' +
-      'estimators of that same benchmark — a 10,000-household agent-based model, a ' +
-      'loan-level prepayment hazard, and a literature microsimulation — and they recover ' +
-      'anywhere from 11.1% to 119.7% of it. The paper is largely about why they disagree, ' +
-      'and what a 2×2 synthetic-versus-real companion design says about which ' +
-      'disagreement is real.',
+      'Agency MBS runoff fell $764.7B short of the Federal Reserve’s phased redemption ' +
+      'caps between June 2022 and November 2025. The interesting part is how little of ' +
+      'that was behavioural. Scheduled amortisation and a baseline involuntary-turnover ' +
+      'floor recover 85.7% of the gap with no lock-in response at all; switching the ' +
+      'response on reaches 91.3%. Lock-in’s own contribution is +5.6 points — $42.6B — ' +
+      'and the paper quotes two intervals around it rather than either alone, because ' +
+      'sampling error and the floor’s functional form bound it differently. Measured ' +
+      'against the Fed’s own ex-ante projection instead of the never-binding cap, the ' +
+      'genuine surprise is $87.8B.',
     link: 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7152299',
     figure: true,
   },

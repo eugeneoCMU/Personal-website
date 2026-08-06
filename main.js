@@ -23,14 +23,17 @@ mount('contact', R.renderContact(profile))
 const figures = document.querySelector('[data-figures]')
 if (figures) {
   figures.innerHTML = `
-    <figure class="figure">${C.buildSeriesChart(D)}
-      <figcaption>Prepayment speed across the 42-month QT window: observed,
-      modelled, and the frictionless counterfactual. The shaded band is the gap the
-      $${D.BENCHMARK_B}B benchmark measures. Dashed verticals mark four months the
-      source reports as zero with catch-up the following month.</figcaption></figure>
-    <figure class="figure">${C.buildRecoveryChart(D.estimators, D.BENCHMARK_B)}
-      <figcaption>Share of the benchmark recovered by each estimator, against full
-      recovery. The spread — not any single figure — is the finding.</figcaption></figure>`
+    <figure class="figure">${C.buildRecoveryChart(D.recovery, D.BENCHMARK_B)}
+      <figcaption>Share of the $${D.BENCHMARK_B}B shortfall recovered with and without a
+      lock-in response, on a benchmark-consistent accounting basis at the headline
+      off-window calibration. Under the additive floor form the null recovers
+      ${D.ADDITIVE_FORM_NULL_PCT}% instead.</figcaption></figure>
+    <figure class="figure">${C.buildMarginalChart(D.marginal)}
+      <figcaption>What the lock-in elasticity itself adds over that null:
+      +${D.marginal.pointPct} points, $${D.marginal.dollarsB}B. Against the Fed’s ex-ante
+      projection rather than the cap, lock-in accounts for ${D.SURPRISE_SHARE_PCT.lo}–${D.SURPRISE_SHARE_PCT.hi}%
+      of the $${D.UNANTICIPATED_B}B surprise, depending on the disclosed allocation choice.
+      All figures from the published abstract, revised ${D.PAPER.revised}.</figcaption></figure>`
 }
 
 initInk(document.getElementById('ink'), { reducedMotion })
