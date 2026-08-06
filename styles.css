@@ -8,7 +8,13 @@
   /* How far the hero wordmark sits above the bottom of the first screen.
      Bigger = name higher. This is the one number to change if the hero
      composition feels off. */
-  --hero-lift: 38vh;
+  --hero-lift: 46vh;
+}
+
+/* On a short screen the same vh fraction would drive the wordmark up into the
+   fixed nav, so give back some lift rather than letting them collide. */
+@media (max-height: 800px) {
+  :root { --hero-lift: 28vh; }
 }
 
 @font-face { font-family: 'Playfair'; src: url('assets/fonts/playfair-display-400.woff2') format('woff2');
@@ -85,9 +91,17 @@ main { position: relative; z-index: 2; }
   font-family: 'Playfair', Georgia, serif; font-weight: 400;
   font-size: clamp(3.2rem, 13vw, 11rem); line-height: .92; margin: 0 0 .3em;
 }
-/* Letters rise into place from behind a mask. clip-path rather than
-   overflow:hidden so descenders are not shaved off. */
-.wordmark-inner { display: inline-block; clip-path: inset(-.12em 0 -.06em 0); }
+/* Letters rise into place from behind a mask. The mask has to be tight along the
+   bottom while they travel, or you see them before they arrive — but a tight
+   bottom edge shears the descenders off 'g' once they land. So the mask releases
+   itself after the last letter settles, in CSS rather than JS: if scripting
+   fails the descenders still survive. */
+.wordmark-inner {
+  display: inline-block;
+  clip-path: inset(-.14em 0 0 0);
+  animation: unmask 1ms linear 1.6s forwards;
+}
+@keyframes unmask { to { clip-path: inset(-.14em -.08em -.5em -.08em); } }
 .wordmark span {
   display: inline-block;
   transform: translateY(105%);
@@ -184,5 +198,8 @@ main { position: relative; z-index: 2; }
   }
   .reveal { opacity: 1; transform: none; }
   .wordmark span { transform: none !important; opacity: 1 !important; }
+  /* animation:none above would strand the mask in its tight travelling state
+     and clip the descenders permanently. */
+  .wordmark-inner { clip-path: none !important; }
   .figure .c-bar, .figure .c-bar-strong, .figure .c-range { transform: none !important; }
 }
