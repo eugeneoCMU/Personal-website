@@ -93,10 +93,14 @@ export function renderEducation(items) {
 }
 
 export function renderSkills(skills) {
-  const list = (arr) => arr.map(s => `<li>${e(s)}</li>`).join('')
-  return `
-    <ul class="tags">${list(skills.technical)}</ul>
-    <ul class="tags subtle">${list(skills.languages)}</ul>`
+  // Labelled rows rather than two anonymous lists: previously the only thing
+  // distinguishing languages from technical skills was that they were greyer.
+  const group = (label, arr) => `
+    <div class="skill-group">
+      <h3 class="skill-label">${e(label)}</h3>
+      <ul class="tags">${arr.map(s => `<li>${e(s)}</li>`).join('')}</ul>
+    </div>`
+  return group('Technical', skills.technical) + group('Languages', skills.languages)
 }
 
 export function renderActivities(items) {

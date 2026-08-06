@@ -165,11 +165,23 @@ main { position: relative; z-index: 2; }
 .entry { margin-bottom: 2.2rem; }
 .entry h3 { font-family: 'Playfair', Georgia, serif; font-weight: 400;
             font-size: 1.5rem; margin: 0 0 .2rem; }
-.entry-meta, .entry-detail { margin: 0; color: var(--ink-mid); font-size: .92rem; }
+/* Capped like every other text block; without this the coursework line ran the
+   full column width while its neighbours were held to a readable measure. */
+.entry-meta, .entry-detail { margin: 0; color: var(--ink-mid); font-size: .92rem;
+                             max-width: var(--measure); }
 
-.tags { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem 1.4rem;
-        padding: 0; margin: 0 0 1rem; font-size: .82rem; }
-.tags.subtle { color: var(--ink-mid); }
+/* Labelled rows on hairlines, echoing the rhythm of the showcase above. */
+.skill-group {
+  display: grid; grid-template-columns: 9rem 1fr; gap: 1.6rem;
+  padding: 1.5rem 0; border-top: 1px solid var(--rule);
+}
+.skill-group:last-child { border-bottom: 1px solid var(--rule); }
+.skill-label {
+  margin: 0; padding-top: .2rem; font-weight: 500; font-size: .7rem;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--ink-mid);
+}
+.tags { list-style: none; display: flex; flex-wrap: wrap; gap: .55rem 1.5rem;
+        padding: 0; margin: 0; font-size: .95rem; }
 /* One line of content in a full-height band read as an empty section. Given the
    display face and a shorter band, the space becomes deliberate instead. */
 .band-tight { padding-top: 6vh; padding-bottom: 6vh; }
@@ -189,7 +201,14 @@ main { position: relative; z-index: 2; }
 @media (max-width: 720px) {
   .row { grid-template-columns: 2rem 1fr; }
   .row-meta { grid-column: 2; align-items: flex-start; text-align: left; padding-top: .4rem; }
+  .skill-group { grid-template-columns: 1fr; gap: .6rem; }
+  /* At 390px the four links needed 402px and wrapped onto a second line, which
+     doubled the nav height and dragged the paper fade down over the hero. */
+  .topbar { padding: 16px var(--gutter); }
+  .topbar a { margin-left: 14px; font-size: .62rem; letter-spacing: .1em; }
 }
+/* Comfortable tap targets without changing the visual rhythm. */
+.topbar a { display: inline-block; padding: 6px 0; }
 
 @media (prefers-reduced-motion: reduce) {
   /* animation: none, NOT a near-zero duration. Collapsing the duration of an
