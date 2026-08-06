@@ -100,7 +100,7 @@ export function buildRecoveryChart(estimators, benchmarkB) {
     .ref  { stroke: #12110f; stroke-width: 1; stroke-dasharray: 4 4; }
   </style>
   <line class="ref" x1="${x(100).toFixed(1)}" x2="${x(100).toFixed(1)}" y1="20" y2="${h - 34}"/>
-  <text class="ref-label" x="${(x(100) + 6).toFixed(1)}" y="16">100% &mdash; full recovery of $${benchmarkB}B</text>
+  <text class="ref-label" x="${(x(100) + 6).toFixed(1)}" y="16">100% &#8212; full recovery of $${benchmarkB}B</text>
   ${rows}
 </svg>`
 }
