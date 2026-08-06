@@ -4,11 +4,16 @@
 export const profile = {
   name: 'Eugene Ong',
   tagline: 'Quantitative research — monetary policy and mortgage markets.',
-  about:
-    'I study how monetary policy actually moves through household balance sheets. ' +
-    'At Carnegie Mellon I am reading for a B.S. in Business Administration and an ' +
-    'intended B.S. in Mathematics, and I spend most of my time on independent ' +
-    'quantitative research, prediction-market strategy, and early-stage diligence.',
+  // Segments, not one string, so a link can sit inside the sentence without
+  // any of it bypassing escaping. Plain strings are escaped; objects become
+  // external links.
+  about: [
+    'Carnegie Mellon, class of 2029. I do fixed-income research — agency ' +
+    'mortgage-backed securities, and how Federal Reserve policy actually moves ' +
+    'through them — and early-stage venture, through ',
+    { text: 'Foundry', href: 'https://foundry.scottylabs.org/' },
+    ' and elsewhere.',
+  ],
   email: 'eugeneo@andrew.cmu.edu',
   linkedin: 'https://linkedin.com/in/eugene-ong-582929190',
   github: 'https://github.com/eugeneoCMU',

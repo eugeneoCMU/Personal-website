@@ -42,7 +42,11 @@ export function renderHero(profile) {
 }
 
 export function renderAbout(profile) {
-  return `<p class="prose">${e(profile.about)}</p>`
+  const parts = Array.isArray(profile.about) ? profile.about : [profile.about]
+  const body = parts.map((part) =>
+    typeof part === 'string' ? e(part) : extLink(part.href, part.text)
+  ).join('')
+  return `<p class="prose">${body}</p>`
 }
 
 // `extra` is progressive disclosure — hidden until hover or focus.
