@@ -1,0 +1,96 @@
+// Pure: data in, HTML string out. No DOM, no side effects — that is what makes
+// this file testable in Node.
+
+export function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+const e = escapeHtml
+const pad = (n) => String(n + 1).padStart(2, '0')
+
+function extLink(href, text) {
+  return `<a href="${e(href)}" target="_blank" rel="noopener noreferrer">${e(text)}</a>`
+}
+
+export function renderHero(profile) {
+  return `
+    <h1 class="wordmark">${e(profile.name)}</h1>
+    <p class="tagline">${e(profile.tagline)}</p>`
+}
+
+export function renderAbout(profile) {
+  return `<p class="prose">${e(profile.about)}</p>`
+}
+
+function row({ index, title, meta, body, href, extra = '' }) {
+  return `
+    <article class="row" tabindex="0" data-index="${index}">
+      <span class="row-num">${pad(index)}</span>
+      <div class="row-main">
+        <h3 class="row-title">${href ? extLink(href, title) : e(title)}</h3>
+        <div class="row-reveal">
+          <p class="row-body">${e(body)}</p>
+          ${extra}
+        </div>
+      </div>
+      <div class="row-meta">${meta}</div>
+    </article>`
+}
+
+export function renderResearch(items) {
+  return items.map((r, i) => row({
+    index: i,
+    title: r.title,
+    href: r.link,
+    body: r.summary,
+    meta: `<span>${e(r.dates)}</span><span>${e(r.venue)}</span>`,
+    extra: r.figure ? '<div class="figures" data-figures></div>' : '',
+  })).join('')
+}
+
+export function renderExperience(items) {
+  return items.map((x, i) => row({
+    index: i,
+    title: x.role,
+    body: x.bullets.join(' '),
+    meta: `<span>${e(x.dates)}</span><span>${e(x.org)}</span><span>${e(x.location)}</span>`,
+    extra: `<ul class="bullets">${x.bullets.map(b => `<li>${e(b)}</li>`).join('')}</ul>`,
+  })).join('')
+}
+
+export function renderEducation(items) {
+  return items.map(ed => `
+    <div class="entry">
+      <h3>${e(ed.school)}</h3>
+      <p class="entry-meta">${e(ed.degree)} &middot; ${e(ed.dates)}</p>
+      <p class="entry-detail">${e(ed.detail)}</p>
+    </div>`).join('')
+}
+
+export function renderSkills(skills) {
+  const list = (arr) => arr.map(s => `<li>${e(s)}</li>`).join('')
+  return `
+    <ul class="tags">${list(skills.technical)}</ul>
+    <ul class="tags subtle">${list(skills.languages)}</ul>`
+}
+
+export function renderActivities(items) {
+  return items.map(a =>
+    `<p class="activity">${e(a.role)}, ${e(a.org)} &mdash; ${e(a.detail)}</p>`
+  ).join('')
+}
+
+export function renderContact(profile) {
+  return `
+    <ul class="contact">
+      <li><a href="mailto:${e(profile.email)}">${e(profile.email)}</a></li>
+      <li>${extLink(profile.linkedin, 'LinkedIn')}</li>
+      <li>${extLink(profile.github, 'GitHub')}</li>
+      <li><a href="${e(profile.resumeUrl)}">Resume (PDF)</a></li>
+    </ul>`
+}
