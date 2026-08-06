@@ -40,15 +40,38 @@ initInk(document.getElementById('ink'), { reducedMotion })
 
 document.querySelectorAll('.rows').forEach((rows) => initShowcase(rows))
 
-if (!reducedMotion && 'IntersectionObserver' in window) {
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach((en) => {
-      if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target) }
-    })
-  }, { rootMargin: '0px 0px -12% 0px' })
+// Both effects start their target hidden — sections at opacity 0, chart bars at
+// scaleX(0) — so a callback that never arrives means content a visitor can never
+// read. Every path below therefore ends with the content shown.
+const BANDS = [...document.querySelectorAll('main > .band')]
+const FIGURES = [...document.querySelectorAll('.figure')]
+
+function showEverything() {
+  BANDS.forEach((el) => el.classList.add('in'))
+  FIGURES.forEach((el) => el.classList.add('drawn'))
+}
+
+if (reducedMotion || !('IntersectionObserver' in window)) {
+  // No observer, or motion suppressed: it is simply already there.
+  showEverything()
+} else {
+  const reveal = (el, cls) => {
+    const io = new IntersectionObserver((entries, obs) => {
+      entries.forEach((en) => {
+        if (en.isIntersecting) { en.target.classList.add(cls); obs.unobserve(en.target) }
+      })
+    }, { rootMargin: '0px 0px -12% 0px' })
+    io.observe(el)
+  }
+
   // Scoped to direct children of <main>: an unscoped '.band' also matches SVG
   // internals inside the charts, which would set the figures to opacity 0.
-  document.querySelectorAll('main > .band').forEach((el) => {
-    el.classList.add('reveal'); io.observe(el)
-  })
+  BANDS.forEach((el) => { el.classList.add('reveal'); reveal(el, 'in') })
+  FIGURES.forEach((el) => reveal(el, 'drawn'))
+
+  // Failsafe. Observers do not deliver callbacks while the page is in a
+  // background tab, and a visitor who restores that tab must not find blank
+  // sections and invisible charts. After this, the animation is forfeit but the
+  // content is not.
+  setTimeout(showEverything, 4000)
 }

@@ -11,6 +11,7 @@ export const FRAGMENT_SRC = `
 precision mediump float;
 uniform float u_time;
 uniform vec2 u_resolution;
+uniform vec2 u_pointer;
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
 
@@ -32,10 +33,16 @@ void main() {
   uv.x *= u_resolution.x / u_resolution.y;
   float t = u_time * 0.012;
 
-  vec2 q = vec2(fbm(uv * 1.6 + t), fbm(uv * 1.6 + vec2(3.7, 1.3) - t));
+  // The ink leans away from the cursor. Deliberately weak — this should read as
+  // the surface noticing you, not as a thing chasing the mouse.
+  vec2 toPointer = uv - u_pointer;
+  float pull = 0.18 / (1.0 + 6.0 * dot(toPointer, toPointer));
+  vec2 warp = normalize(toPointer + 1e-5) * pull;
+
+  vec2 q = vec2(fbm(uv * 1.6 + t + warp), fbm(uv * 1.6 + vec2(3.7, 1.3) - t + warp));
   vec2 r = vec2(fbm(uv * 2.1 + 3.0 * q + vec2(1.7, 9.2) + 0.15 * t),
                 fbm(uv * 2.1 + 3.0 * q + vec2(8.3, 2.8) - 0.12 * t));
-  float f = fbm(uv * 2.4 + 3.5 * r);
+  float f = fbm(uv * 2.4 + 3.5 * r + warp * 0.5);
 
   // Ink sits low in the frame and fades toward the top, leaving clean paper for type.
   float fade = smoothstep(0.05, 0.95, uv.y);
@@ -50,6 +57,17 @@ void main() {
 export function dprFor(raw) {
   const v = Number.isFinite(raw) ? raw : 1
   return Math.min(2, Math.max(1, v))
+}
+
+/**
+ * Frame-rate-independent easing toward a target. The pointer is never fed to the
+ * shader raw — following it exactly makes the ink feel twitchy and mechanical.
+ */
+export function approach(current, target, ease = 0.06) {
+  if (!Number.isFinite(current)) return Number.isFinite(target) ? target : 0
+  if (!Number.isFinite(target)) return current
+  const e = Math.min(1, Math.max(0, ease))
+  return current + (target - current) * e
 }
 
 function compile(gl, type, src) {
@@ -88,6 +106,20 @@ export function initInk(canvas, { reducedMotion = false } = {}) {
 
   const uTime = gl.getUniformLocation(prog, 'u_time')
   const uRes = gl.getUniformLocation(prog, 'u_resolution')
+  const uPointer = gl.getUniformLocation(prog, 'u_pointer')
+
+  // Target is where the cursor is; eased is what the shader sees. Starts centred
+  // so the first frame is composed rather than pinned to a corner.
+  const target = { x: 0.5, y: 0.5 }
+  const eased = { x: 0.5, y: 0.5 }
+
+  function onPointer(ev) {
+    const rect = canvas.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
+    target.x = (ev.clientX - rect.left) / rect.width
+    // GL's y axis runs bottom-up; the DOM's runs top-down.
+    target.y = 1 - (ev.clientY - rect.top) / rect.height
+  }
 
   function resize() {
     const dpr = dprFor(window.devicePixelRatio)
@@ -102,18 +134,34 @@ export function initInk(canvas, { reducedMotion = false } = {}) {
     resize()
     gl.uniform1f(uTime, t)
     gl.uniform2f(uRes, canvas.width, canvas.height)
+    gl.uniform2f(uPointer, eased.x, eased.y)
     gl.drawArrays(gl.TRIANGLES, 0, 3)
   }
 
-  // Reduced motion still gets a rendered frame — never an empty canvas.
+  // Reduced motion still gets a rendered frame — never an empty canvas — and no
+  // pointer listener, because the ink must not move at all.
   if (reducedMotion) {
     draw(120)
     window.addEventListener('resize', () => draw(120))
     return { ok: true, animated: false }
   }
 
+  window.addEventListener('pointermove', onPointer, { passive: true })
+
   let raf = 0
-  const loop = (ms) => { draw(ms / 1000); raf = requestAnimationFrame(loop) }
+  const loop = (ms) => {
+    eased.x = approach(eased.x, target.x)
+    eased.y = approach(eased.y, target.y)
+    draw(ms / 1000)
+    raf = requestAnimationFrame(loop)
+  }
   raf = requestAnimationFrame(loop)
-  return { ok: true, animated: true, stop: () => cancelAnimationFrame(raf) }
+  return {
+    ok: true,
+    animated: true,
+    stop: () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('pointermove', onPointer)
+    },
+  }
 }

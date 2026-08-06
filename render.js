@@ -17,9 +17,25 @@ function extLink(href, text) {
   return `<a href="${e(href)}" target="_blank" rel="noopener noreferrer">${e(text)}</a>`
 }
 
+/**
+ * Splits a string into per-character spans carrying a stagger index.
+ * Spaces become a non-animating spacer so word breaks survive.
+ */
+export function staggerLetters(text) {
+  let i = 0
+  return [...String(text)].map((ch) => {
+    if (ch === ' ') return '<span class="sp"> </span>'
+    return `<span style="--i:${i++}">${e(ch)}</span>`
+  }).join('')
+}
+
 export function renderHero(profile) {
+  // The spans are decoration. Screen readers get the name once, from aria-label,
+  // rather than being read eleven separate letters.
   return `
-    <h1 class="wordmark">${e(profile.name)}</h1>
+    <h1 class="wordmark" aria-label="${e(profile.name)}">
+      <span class="wordmark-inner" aria-hidden="true">${staggerLetters(profile.name)}</span>
+    </h1>
     <p class="tagline">${e(profile.tagline)}</p>`
 }
 
