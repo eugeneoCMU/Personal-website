@@ -88,6 +88,19 @@ document.querySelectorAll('a[href^="#"]').forEach((a) => {
 window.addEventListener('hashchange', () => revealTarget(location.hash))
 if (location.hash) revealTarget(location.hash)
 
+// Scroll drives the gem: it turns, sinks and fades as the hero leaves.
+if (background && typeof background.setScroll === 'function') {
+  let queued = false
+  const syncGem = () => {
+    queued = false
+    background.setScroll(window.scrollY / Math.max(1, window.innerHeight))
+  }
+  window.addEventListener('scroll', () => {
+    if (!queued) { queued = true; requestAnimationFrame(syncGem) }
+  }, { passive: true })
+  syncGem()
+}
+
 // Inertial scroll, word reveals and velocity skew — the motion vocabulary the
 // reference sites use. All three no-op under reduced motion.
 export const motion = reducedMotion ? { reduced: true } : {

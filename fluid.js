@@ -180,6 +180,108 @@ uniform sampler2D uTexture;
 uniform float value;
 void main () { fragColor = value * texture(uTexture, vUv); }`,
 
+  // A raymarched refractive solid sitting in the ink. No mesh, no matrix stack:
+  // a signed-distance field marched in a fragment shader, with the normal taken
+  // from the SDF gradient. It refracts whatever the fluid painted behind it, so
+  // the two effects are one image rather than two stacked ones.
+  glass: `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 fragColor;
+uniform sampler2D uScene;     // the ink, already composited
+uniform vec2 uResolution;
+uniform float uTime;
+uniform float uScroll;        // 0 at the top of the page, 1 once the hero has gone
+uniform vec2 uPointer;
+
+const int STEPS = 56;
+const float EPS = 0.0012;
+
+mat3 rotY(float a){ float c=cos(a), s=sin(a); return mat3(c,0,-s, 0,1,0, s,0,c); }
+mat3 rotX(float a){ float c=cos(a), s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
+
+// Faceted solid: the max over the icosahedral plane normals gives flat faces
+// that catch light like cut glass, rather than the soft blob a sphere would.
+float sdGem(vec3 p, float r) {
+  float G = sqrt(5.0) * 0.5 + 0.5;
+  vec3 n = normalize(vec3(G, 1.0, 0.0));
+  p = abs(p);
+  float d = dot(p, n);
+  d = max(d, dot(p, n.yzx));
+  d = max(d, dot(p, n.zxy));
+  d = max(d, dot(p, normalize(vec3(1.0))));
+  return d - r;
+}
+
+// Small, and set to the upper right — the wordmark owns the lower left, so the
+// gem balances the composition instead of sitting on top of the type.
+const vec3 GEM_AT = vec3(0.60, 0.30, 0.0);
+const float GEM_R = 0.16;
+
+float map(vec3 p) {
+  p -= GEM_AT;
+  p = rotY(uTime * 0.12 + uScroll * 2.2) * rotX(-0.35 + uScroll * 0.9) * p;
+  return sdGem(p, GEM_R);
+}
+
+vec3 normalAt(vec3 p) {
+  vec2 e = vec2(EPS, 0.0);
+  return normalize(vec3(
+    map(p + e.xyy) - map(p - e.xyy),
+    map(p + e.yxy) - map(p - e.yxy),
+    map(p + e.yyx) - map(p - e.yyx)));
+}
+
+void main() {
+  vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / uResolution.y;
+  vec3 scene = texture(uScene, vUv).rgb;
+
+  // The gem drifts with the pointer and sinks as the hero scrolls away.
+  vec2 drift = (uPointer - 0.5) * 0.07;
+  vec3 ro = vec3(uv.x - drift.x, uv.y - drift.y + uScroll * 0.5, 2.4);
+  vec3 rd = vec3(0.0, 0.0, -1.0);
+
+  float t = 0.0;
+  float hit = 0.0;
+  for (int i = 0; i < STEPS; i++) {
+    vec3 p = ro + rd * t;
+    float d = map(p);
+    if (d < EPS) { hit = 1.0; break; }
+    t += d;
+    if (t > 5.0) break;
+  }
+
+  if (hit < 0.5) { fragColor = vec4(scene, 1.0); return; }
+
+  vec3 pos = ro + rd * t;
+  vec3 nor = normalAt(pos);
+
+  // Refraction: bend the view ray and sample the ink behind the gem. Chromatic
+  // spread by sampling each channel at a slightly different index.
+  vec3 rr = refract(rd, nor, 0.76);
+  vec2 off = rr.xy * 0.07;
+  vec3 refr = vec3(
+    texture(uScene, vUv + off * 1.06).r,
+    texture(uScene, vUv + off * 1.00).g,
+    texture(uScene, vUv + off * 0.94).b);
+
+  float fres = pow(1.0 - max(dot(-rd, nor), 0.0), 3.0);
+  vec3 key = normalize(vec3(-0.5, 0.8, 0.6));
+  float spec = pow(max(dot(reflect(-key, nor), -rd), 0.0), 42.0);
+  float rim = pow(1.0 - max(dot(-rd, nor), 0.0), 1.6);
+
+  vec3 col = refr * 0.94;
+  // 0.30, not 0.42: the wordmark can pass in front of the gem, and the edge
+  // darkening is what decides whether it stays readable. See tests/fluid.test.js.
+  col = mix(col, vec3(0.30, 0.29, 0.275), fres * 0.30);
+  col += spec * 0.5;                                       // one hard highlight
+  col -= rim * 0.05;
+
+  // Fades out as the hero leaves, so it never fights the content below.
+  float presence = smoothstep(1.0, 0.55, uScroll);
+  fragColor = vec4(mix(scene, col, presence), 1.0);
+}`,
+
   // Dye density -> paper/ink. The vertical ramp keeps the top of the frame
   // clean so the wordmark always has quiet paper behind it.
   display: (mixValue) => `#version 300 es
@@ -405,10 +507,39 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
     blit(dye.write); dye.swap()
   }
 
+  // The ink is composited into this, then the gem refracts it. Raymarching at
+  // full retina resolution is wasteful for an object this soft, so the scene
+  // buffer is capped — the gem samples it, nobody sees it directly.
+  let scene = null
+  function ensureSceneBuffer() {
+    const w = Math.max(2, Math.min(1600, canvas.width))
+    const h = Math.max(2, Math.min(1000, canvas.height))
+    if (scene && scene.width === w && scene.height === h) return
+    scene = createFBO(gl, w, h, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR)
+  }
+
+  // Hoisted: render() needs these, and it runs once during init before the
+  // animation loop exists.
+  let scroll = 0
+  let clock = 0
+  const pointer = { x: 0.5, y: 0.5, px: 0.5, py: 0.5, moved: false, inside: false }
+  const smooth = { x: 0.5, y: 0.5 }   // eased pointer, so the gem drifts rather than snaps
+
   function render() {
+    ensureSceneBuffer()
+
     use(progs.display)
     gl.uniform1i(progs.display.uniforms.uTexture, dye.read.attach(0))
     gl.uniform1f(progs.display.uniforms.uTopFade, 0.62)
+    blit(scene || null)
+    if (!scene) return
+
+    use(progs.glass)
+    gl.uniform1i(progs.glass.uniforms.uScene, scene.attach(0))
+    gl.uniform2f(progs.glass.uniforms.uResolution, canvas.width, canvas.height)
+    gl.uniform1f(progs.glass.uniforms.uTime, clock)
+    gl.uniform1f(progs.glass.uniforms.uScroll, scroll)
+    gl.uniform2f(progs.glass.uniforms.uPointer, smooth.x, smooth.y)
     blit(null)
   }
 
@@ -444,7 +575,6 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
     return { ok: true, animated: false, backend: 'fluid' }
   }
 
-  const pointer = { x: 0.5, y: 0.5, px: 0.5, py: 0.5, moved: false, inside: false }
   function onMove(ev) {
     const r = canvas.getBoundingClientRect()
     if (!r.width || !r.height) return
@@ -463,6 +593,9 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
     const t = ms / 1000
     let dt = last ? Math.min(t - last, 0.0166) : 0.0166
     last = t
+    clock = t
+    smooth.x += (pointer.x - smooth.x) * 0.05
+    smooth.y += (pointer.y - smooth.y) * 0.05
     resize()
 
     if (pointer.moved && pointer.inside) {
@@ -494,6 +627,8 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
     animated: true,
     backend: 'fluid',
     linearFiltering: linearOk,
+    // 0 at the top of the page, 1 once the hero has fully scrolled away.
+    setScroll(v) { scroll = Math.min(1, Math.max(0, v)) },
     stop() {
       cancelAnimationFrame(raf)
       window.removeEventListener('pointermove', onMove)
