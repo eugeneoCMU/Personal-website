@@ -80,6 +80,87 @@ export function buildRecoveryChart(recovery, benchmarkB) {
 }
 
 /**
+ * Largest-remainder apportionment. Rounding each share independently would
+ * leave the grid at 99 or 101 squares, which in a unit chart is a visible lie.
+ */
+export function apportion(shares, total) {
+  const raw = shares.map((s) => (s / 100) * total)
+  const floors = raw.map(Math.floor)
+  let left = total - floors.reduce((a, b) => a + b, 0)
+  const order = raw
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac)
+  const out = floors.slice()
+  for (let k = 0; k < order.length && left > 0; k++, left--) out[order[k].i]++
+  return out
+}
+
+/**
+ * The benchmark as a hundred squares, one per percentage point. A reader can
+ * see how little of the shortfall the lock-in elasticity actually accounts for,
+ * rather than being told.
+ */
+export function buildUnitChart(recovery, marginal, benchmarkB) {
+  const nullPct = recovery[0].sharePct          // recovered with no lock-in response
+  const elasticityPct = marginal.pointPct       // what the elasticity adds on top
+  const unrecoveredPct = Math.max(0, 100 - nullPct - elasticityPct)
+
+  const bands = [
+    { key: 'null', label: 'Mechanical baseline', sub: 'amortisation + turnover floor',
+      pct: nullPct, fill: 'rgba(18,17,15,.34)', stroke: 'none' },
+    { key: 'lockin', label: 'Lock-in elasticity', sub: `the finding — $${marginal.dollarsB}B`,
+      pct: elasticityPct, fill: '#12110f', stroke: 'none' },
+    { key: 'rest', label: 'Not recovered', sub: 'residual at this calibration',
+      pct: unrecoveredPct, fill: 'none', stroke: 'rgba(18,17,15,.3)' },
+  ]
+
+  const counts = apportion(bands.map((b) => b.pct), 100)
+  const COLS = 10, CELL = 26, GAP = 7, X0 = 46, Y0 = 54
+  const perCell = benchmarkB / 100
+
+  let placed = 0
+  const squares = bands.map((band, bi) => {
+    const n = counts[bi]
+    const cells = []
+    for (let k = 0; k < n; k++, placed++) {
+      const col = placed % COLS
+      const row = Math.floor(placed / COLS)
+      const x = X0 + col * (CELL + GAP)
+      const y = Y0 + row * (CELL + GAP)
+      cells.push(
+        `<rect class="c-unit" data-band="${band.key}" style="--i:${placed}" ` +
+        `x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="1.5" ` +
+        `fill="${band.fill}" stroke="${band.stroke}" stroke-width="1"/>`)
+    }
+    return cells.join('')
+  }).join('')
+
+  const legendX = X0 + COLS * (CELL + GAP) + 46
+  const legend = bands.map((band, i) => {
+    const y = Y0 + 8 + i * 62
+    const swatch = band.fill === 'none'
+      ? `<rect x="${legendX}" y="${y - 11}" width="15" height="15" rx="1.5" fill="none" stroke="${band.stroke}" stroke-width="1"/>`
+      : `<rect x="${legendX}" y="${y - 11}" width="15" height="15" rx="1.5" fill="${band.fill}"/>`
+    return `
+    <g>
+      ${swatch}
+      <text class="c-name" x="${legendX + 25}" y="${y}">${esc(band.label)}</text>
+      <text class="c-sub"  x="${legendX + 25}" y="${y + 17}">${esc(band.sub)}</text>
+      <text class="c-val"  x="${legendX + 25}" y="${y + 36}">${band.pct.toFixed(1)}%</text>
+    </g>`
+  }).join('')
+
+  const H = Y0 + 10 * (CELL + GAP) + 46
+  return `
+<svg viewBox="0 0 900 ${H}" role="img" aria-label="One hundred squares representing the 764.7 billion dollar shortfall. ${nullPct.toFixed(1)} percent is recovered with no lock-in response at all, the lock-in elasticity adds ${elasticityPct} percent, and ${unrecoveredPct.toFixed(1)} percent is not recovered." xmlns="http://www.w3.org/2000/svg">
+  <style>${SHARED_STYLE}</style>
+  <text class="c-sub" x="${X0}" y="30">EACH SQUARE = 1% OF $${benchmarkB}B &#8212; ABOUT $${perCell.toFixed(1)}B</text>
+  ${squares}
+  ${legend}
+</svg>`
+}
+
+/**
  * What the lock-in elasticity itself adds, in percentage points, with both
  * intervals the paper quotes. Neither dominates the other, so both are drawn.
  */

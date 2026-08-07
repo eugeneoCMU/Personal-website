@@ -1,7 +1,7 @@
 // Pure: data in, HTML string out. No DOM, no side effects — that is what makes
 // this file testable in Node.
 
-import { buggySvg } from './art.js'
+import { buggySvg, courseProfileSvg } from './art.js'
 
 export function escapeHtml(value) {
   return String(value)
@@ -113,8 +113,9 @@ export function renderActivities(items) {
   return items.map((a) => `
     <div class="activity-block">
       <p class="activity-role">${e(a.role)}, ${e(a.org)}</p>
-      <figure class="buggy">${buggySvg()}</figure>
+      <figure class="buggy" data-art>${buggySvg()}</figure>
       <p class="activity">${e(a.body)}</p>
+      <figure class="course" data-art>${courseProfileSvg()}</figure>
       <dl class="facts">
         ${(a.facts || []).map(([k, v]) =>
           `<div><dt>${e(k)}</dt><dd>${e(v)}</dd></div>`).join('')}

@@ -24,6 +24,9 @@ mount('contact', R.renderContact(profile))
 const figures = document.querySelector('[data-figures]')
 if (figures) {
   figures.innerHTML = `
+    <figure class="figure">${C.buildUnitChart(D.recovery, D.marginal, D.BENCHMARK_B)}
+      <figcaption>The shortfall as a hundred squares. Most of it is mechanical;
+      the solid block is everything the lock-in elasticity accounts for.</figcaption></figure>
     <figure class="figure">${C.buildRecoveryChart(D.recovery, D.BENCHMARK_B)}
       <figcaption>Share of the $${D.BENCHMARK_B}B shortfall recovered with and without a
       lock-in response, on a benchmark-consistent accounting basis at the headline
@@ -102,9 +105,45 @@ if (reducedMotion || !('IntersectionObserver' in window)) {
   BANDS.forEach((el) => { el.classList.add('reveal'); reveal(el, 'in') })
   FIGURES.forEach((el) => reveal(el, 'drawn'))
 
+  // Line art draws itself once it is on screen.
+  document.querySelectorAll('[data-art]').forEach((el) => reveal(el, 'drawn'))
+
   // Failsafe. Observers do not deliver callbacks while the page is in a
   // background tab, and a visitor who restores that tab must not find blank
   // sections and invisible charts. After this, the animation is forfeit but the
   // content is not.
   setTimeout(showEverything, 4000)
+}
+
+// The buggy rolls across as its section passes the viewport. Wheel rotation is
+// derived from distance travelled rather than time, so it never looks like it is
+// spinning while stationary.
+const buggyFigure = document.querySelector('.buggy')
+const buggyGroup = buggyFigure && buggyFigure.querySelector('[data-buggy]')
+if (buggyGroup && !reducedMotion) {
+  const TRAVEL = 92          // svg user units, left to right
+  const WHEEL_R = 13
+  let ticking = false
+
+  function place() {
+    ticking = false
+    const r = buggyFigure.getBoundingClientRect()
+    const span = window.innerHeight + r.height
+    if (span <= 0) return
+    // 0 as the figure enters from below, 1 as it leaves past the top.
+    const p = Math.min(1, Math.max(0, (window.innerHeight - r.top) / span))
+    const travel = (p - 0.5) * TRAVEL
+    buggyGroup.style.setProperty('--travel', travel.toFixed(2))
+    // Rolling without slipping: theta = distance / radius.
+    const roll = (travel / WHEEL_R) * (180 / Math.PI)
+    buggyGroup.querySelectorAll('[data-wheel]').forEach((w) => {
+      w.style.setProperty('--roll', roll.toFixed(2))
+    })
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(place) }
+  }, { passive: true })
+  window.addEventListener('resize', place, { passive: true })
+  place()
 }

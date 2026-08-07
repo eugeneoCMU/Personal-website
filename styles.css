@@ -190,7 +190,40 @@ main { position: relative; z-index: 2; }
   font-size: .74rem; letter-spacing: .14em; text-transform: uppercase;
 }
 .buggy { margin: 0 0 2.4rem; max-width: 640px; }
-.buggy svg { width: 100%; height: auto; display: block; }
+.course { margin: 2.8rem 0 0; max-width: 640px; }
+.buggy svg, .course svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+/* Line art draws itself. pathLength="100" on every stroke means one dash length
+   works for all of them regardless of true arc length. */
+[data-art] [data-draw] {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transition: stroke-dashoffset 1.15s cubic-bezier(.33,.72,.36,1);
+}
+[data-art] [data-draw="1"] { transition-delay: .05s }
+[data-art] [data-draw="2"] { transition-delay: .40s }
+[data-art] [data-draw="3"] { transition-delay: .70s }
+[data-art] [data-draw="4"] { transition-delay: .95s }
+[data-art].drawn [data-draw] { stroke-dashoffset: 0; }
+
+/* For strokes that carry their own dash pattern and so cannot be drawn. */
+[data-art] [data-fade] { opacity: 0; transition: opacity .8s ease; }
+[data-art] [data-fade="3"] { transition-delay: .8s }
+[data-art].drawn [data-fade] { opacity: 1; }
+
+/* The buggy rolls as the section passes: --travel and --roll are written by
+   main.js from scroll position. */
+[data-buggy] {
+  transform: translateX(calc(var(--travel, 0) * 1px));
+  will-change: transform;
+}
+[data-wheel] { transform: rotate(calc(var(--roll, 0) * 1deg)); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-art] [data-draw] { stroke-dashoffset: 0 !important; transition: none !important; }
+  [data-art] [data-fade] { opacity: 1 !important; transition: none !important; }
+  [data-buggy], [data-wheel] { transform: none !important; }
+}
 .activity {
   font-family: 'Playfair', Georgia, serif;
   font-size: clamp(1.15rem, 2.1vw, 1.6rem);
