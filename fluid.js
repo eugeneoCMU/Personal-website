@@ -25,14 +25,14 @@ const VELOCITY_DISSIPATION = 0.6 // higher = motion settles sooner
 const CURL_STRENGTH = 13         // vorticity. Higher = more frantic curling.
 
 // How much ink there is ───────────────────────────────────────────────────────
-const DENSITY_DISSIPATION = 0.44 // higher = ink fades away faster
-const INK_MIX = 0.5              // paper→ink ramp. Lower = paler.
+const DENSITY_DISSIPATION = 0.26 // higher = ink fades away faster
+const INK_MIX = 0.62              // paper→ink ramp. Lower = paler.
                                  // Guarded by tests/fluid.test.js: raising this
                                  // eventually makes the tagline unreadable.
-const SPLAT_AMOUNT_POINTER = 0.085
-const SPLAT_AMOUNT_SEED = 0.15
-const SPLAT_AMOUNT_AMBIENT = 0.075
-const SPLAT_RADIUS = 0.0026      // larger = softer, more diffuse blobs
+const SPLAT_AMOUNT_POINTER = 0.17
+const SPLAT_AMOUNT_SEED = 0.30
+const SPLAT_AMOUNT_AMBIENT = 0.15
+const SPLAT_RADIUS = 0.0042      // larger = softer, more diffuse blobs
 
 const BASE_VERT = `#version 300 es
 precision highp float;
@@ -294,7 +294,7 @@ uniform float uTopFade;
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void main () {
   float d = texture(uTexture, vUv).r;
-  float clean = smoothstep(uTopFade - 0.28, uTopFade + 0.42, vUv.y);
+  float clean = smoothstep(uTopFade - 0.02, uTopFade + 0.46, vUv.y);
   d *= (1.0 - clean);
   d = clamp(d, 0.0, 1.0);
   d = pow(d, 0.85);
@@ -554,7 +554,7 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
 
   // Seed the frame so the hero is never empty on arrival.
   function seed(seedTime) {
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 26; i++) {
       const a = (i * 2.399963) + seedTime
       const x = 0.5 + Math.cos(a) * 0.42
       const y = 0.12 + (i % 5) * 0.055
@@ -564,7 +564,7 @@ export function initFluid(canvas, { reducedMotion = false } = {}) {
 
   resize()
   seed(0.7)
-  for (let i = 0; i < 26; i++) step(0.016)
+  for (let i = 0; i < 40; i++) step(0.016)
   // Paint immediately. requestAnimationFrame does not fire while the page is in
   // a background tab, so without this a visitor who opens the site in one and
   // comes back later would find blank paper behind the wordmark.
