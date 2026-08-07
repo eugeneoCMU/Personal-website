@@ -4,6 +4,7 @@ import * as C from './charts.js'
 import * as D from './data/lockin.js'
 import { initInk } from './background.js'
 import { initFluid } from './fluid.js'
+import { initSmoothScroll, initWordReveal, initVelocitySkew } from './motion.js'
 import { initShowcase } from './showcase.js'
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -86,6 +87,32 @@ document.querySelectorAll('a[href^="#"]').forEach((a) => {
 })
 window.addEventListener('hashchange', () => revealTarget(location.hash))
 if (location.hash) revealTarget(location.hash)
+
+// Inertial scroll, word reveals and velocity skew — the motion vocabulary the
+// reference sites use. All three no-op under reduced motion.
+export const motion = reducedMotion ? { reduced: true } : {
+  scroll: initSmoothScroll(),
+  words: initWordReveal('.prose, .activity, .row-body'),
+  skew: initVelocitySkew('main > .band'),
+}
+
+// CSS smooth-scroll would fight the inertial easing, so hand anchors over to it.
+if (motion.scroll && motion.scroll.ok) {
+  document.documentElement.style.scrollBehavior = 'auto'
+  document.querySelectorAll('a[href^="#"]').forEach((a) => {
+    a.addEventListener('click', (ev) => {
+      const target = document.querySelector(a.getAttribute('href'))
+      if (!target) return
+      ev.preventDefault()
+      const style = getComputedStyle(target.closest('.band') || target)
+      const margin = parseFloat(style.scrollMarginTop) || 0
+      const y = target.getBoundingClientRect().top + window.scrollY - margin
+      window.scrollTo({ top: y, behavior: 'smooth' })
+      motion.scroll.jumpTo(y)
+      history.replaceState(null, '', a.getAttribute('href'))
+    })
+  })
+}
 
 if (reducedMotion || !('IntersectionObserver' in window)) {
   // No observer, or motion suppressed: it is simply already there.
